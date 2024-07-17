@@ -176,9 +176,9 @@ type Segment struct {
 	SpeechEndAt float64
 }
 
-func (sd *Detector) Detect(pcm []float32) ([]Segment, error) {
+func (sd *Detector) Detect(pcm []float32) (bool, error) {
 	if sd == nil {
-		return nil, fmt.Errorf("invalid nil detector")
+		return false, fmt.Errorf("invalid nil detector")
 	}
 
 	windowSize := 512
@@ -187,7 +187,7 @@ func (sd *Detector) Detect(pcm []float32) ([]Segment, error) {
 	}
 
 	if len(pcm) < windowSize {
-		return nil, fmt.Errorf("not enough samples")
+		return false, fmt.Errorf("not enough samples")
 	}
 
 	slog.Debug("starting speech detection", slog.Int("samplesLen", len(pcm)))
@@ -195,11 +195,11 @@ func (sd *Detector) Detect(pcm []float32) ([]Segment, error) {
 	minSilenceSamples := sd.cfg.MinSilenceDurationMs * sd.cfg.SampleRate / 1000
 	speechPadSamples := sd.cfg.SpeechPadMs * sd.cfg.SampleRate / 1000
 
-	var segments []Segment
+	// var segments []Segment
 	for i := 0; i < len(pcm)-windowSize; i += windowSize {
-		speechProb, err := sd.Infer(pcm[i : i+windowSize])
+		speechProb, err := sd.infer(pcm[i : i+windowSize])
 		if err != nil {
-			return nil, fmt.Errorf("infer failed: %w", err)
+			return false, fmt.Errorf("infer failed: %w", err)
 		}
 
 		sd.currSample += windowSize
@@ -208,7 +208,7 @@ func (sd *Detector) Detect(pcm []float32) ([]Segment, error) {
 			sd.tempEnd = 0
 		}
 
-		if speechProb >= sd.cfg.Threshold && !sd.triggered {
+		if speechProb >= sd.cfg.Threshold {
 			sd.triggered = true
 			speechStartAt := (float64(sd.currSample-windowSize-speechPadSamples) / float64(sd.cfg.SampleRate))
 
@@ -218,12 +218,13 @@ func (sd *Detector) Detect(pcm []float32) ([]Segment, error) {
 			}
 
 			slog.Debug("speech start", slog.Float64("startAt", speechStartAt))
-			segments = append(segments, Segment{
-				SpeechStartAt: speechStartAt,
-			})
+			// segments = append(segments, Segment{
+			// 	SpeechStartAt: speechStartAt,
+			// })
+			return true, nil
 		}
 
-		if speechProb < (sd.cfg.Threshold-0.15) && sd.triggered {
+		if speechProb < (sd.cfg.Threshold - 0.15) {
 			if sd.tempEnd == 0 {
 				sd.tempEnd = sd.currSample
 			}
@@ -238,17 +239,17 @@ func (sd *Detector) Detect(pcm []float32) ([]Segment, error) {
 			sd.triggered = false
 			slog.Debug("speech end", slog.Float64("endAt", speechEndAt))
 
-			if len(segments) < 1 {
-				return nil, fmt.Errorf("unexpected speech end")
-			}
+			// if len(segments) < 1 {
+			// 	return false, fmt.Errorf("unexpected speech end")
+			// }
 
-			segments[len(segments)-1].SpeechEndAt = speechEndAt
+			// segments[len(segments)-1].SpeechEndAt = speechEndAt
 		}
 	}
 
-	slog.Debug("speech detection done", slog.Int("segmentsLen", len(segments)))
+	// slog.Debug("speech detection done", slog.Int("segmentsLen", len(segments)))
 
-	return segments, nil
+	return false, nil
 }
 
 func (sd *Detector) Reset() error {
