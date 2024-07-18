@@ -16,10 +16,10 @@ jobs:
           go-version: ${{ matrix.go-version }}
       - name: Install ONNX
         run: |
-          wget https://github.com/microsoft/onnxruntime/releases/download/v1.16.2/onnxruntime-linux-x64-1.16.2.tgz
-          tar xf onnxruntime-linux-x64-1.16.2.tgz
-          sudo cp ./onnxruntime-linux-x64-1.16.2/include/* /usr/local/include
-          sudo cp ./onnxruntime-linux-x64-1.16.2/lib/* /usr/local/lib
+          wget https://github.com/microsoft/onnxruntime/releases/download/v1.18.1/onnxruntime-linux-x64-1.18.1.tgz
+          tar xf onnxruntime-linux-x64-1.18.1.tgz
+          sudo cp ./onnxruntime-linux-x64-1.18.1/include/* /usr/local/include
+          sudo cp ./onnxruntime-linux-x64-1.18.1/lib/* /usr/local/lib
           sudo ldconfig
       - name: Checkout Code
         uses: actions/checkout@v2
